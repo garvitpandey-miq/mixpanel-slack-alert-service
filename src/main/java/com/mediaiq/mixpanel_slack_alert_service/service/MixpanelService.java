@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.*;
 import java.util.Base64;
+import java.util.Map;
 
 @Service
 public class MixpanelService {
@@ -54,23 +55,23 @@ public class MixpanelService {
 
       for (String jsonLine : jsonLines) {
         if (!jsonLine.trim().isEmpty()) {
-          JsonNode eventNode = objectMapper.readTree(jsonLine);
+          JsonNode eventJson = objectMapper.readTree(jsonLine);
 
           if (
-                  eventNode.has("event")
+                  eventJson.has("event")
                           &&
-                  "BE_pipeline_executed".equals(eventNode.get("event").asText())
+                  "BE_pipeline_executed".equals(eventJson.get("event").asText())
           ) {
-            String formattedJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(eventNode);
+            String formattedJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(eventJson);
             System.out.println(formattedJson);
           }
 
           if (
-                  eventNode.has("event")
+                  eventJson.has("event")
                           &&
-                          "BE_Health_Check_Completed".equals(eventNode.get("event").asText())
+                          "BE_Health_Check_Completed".equals(eventJson.get("event").asText())
           ) {
-            String formattedJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(eventNode);
+            String formattedJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(eventJson);
             System.out.println(formattedJson);
           }
         }

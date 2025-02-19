@@ -1,7 +1,8 @@
 package com.mediaiq.mixpanel_slack_alert_service.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.*;
@@ -39,10 +40,34 @@ public class MixpanelService {
 
       ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
 
-      System.out.println("Mixpanel API Response: " + response.getBody());
+//      System.out.println(response.getBody() + "\n");
+
+      String responseBody = response.getBody();
+      if (responseBody == null || responseBody.isEmpty()) {
+        System.out.println("[INFO] No data received from Mixpanel");
+        return;
+      }
+
+      String[] jsonLines = responseBody.split("\n");
+      ObjectMapper objectMapper = new ObjectMapper();
+      System.out.println("[Mixpanel API Response]: \n");
+      for (String jsonLine : jsonLines) {
+        if (!jsonLine.trim().isEmpty()) {
+          JsonNode eventNode = objectMapper.readTree(jsonLine);
+
+          if (
+                  eventNode.has("event")
+                          &&
+                  "BE_pipeline_executed".equals(eventNode.get("event").asText())
+          ) {
+            String formattedJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(eventNode);
+            System.out.println(formattedJson);
+          }
+        }
+      }
 
     } catch (Exception e) {
-      System.err.println("Error fetching data from Mixpanel: " + e.getMessage());
+      System.err.println("[Error] Failed to fetch data from Mixpanel: " + e.getMessage());
     }
   }
 }

@@ -51,6 +51,7 @@ public class MixpanelService {
       String[] jsonLines = responseBody.split("\n");
       ObjectMapper objectMapper = new ObjectMapper();
       System.out.println("[Mixpanel API Response]: \n");
+
       for (String jsonLine : jsonLines) {
         if (!jsonLine.trim().isEmpty()) {
           JsonNode eventNode = objectMapper.readTree(jsonLine);
@@ -63,9 +64,17 @@ public class MixpanelService {
             String formattedJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(eventNode);
             System.out.println(formattedJson);
           }
+
+          if (
+                  eventNode.has("event")
+                          &&
+                          "BE_Health_Check_Completed".equals(eventNode.get("event").asText())
+          ) {
+            String formattedJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(eventNode);
+            System.out.println(formattedJson);
+          }
         }
       }
-
     } catch (Exception e) {
       System.err.println("[Error] Failed to fetch data from Mixpanel: " + e.getMessage());
     }

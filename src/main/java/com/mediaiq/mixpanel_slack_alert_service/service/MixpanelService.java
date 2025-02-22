@@ -28,10 +28,11 @@ public class MixpanelService {
   private final RestTemplate restTemplate = new RestTemplate();
 
   private Map<String, Map<String, Integer>> detailsOfPipelineFailuresMap = new HashMap<>();
+  private Map<String, Map<String, Integer>> detailsOfDataHealthCheckCompletedMap = new HashMap<>();
 
   public void fetchMixpanelData() {
     try {
-      String url = mixpanelApiUrl + "?project_id=" + projectId + "&from_date=2025-02-19&to_date=2025-02-19";
+      String url = mixpanelApiUrl + "?project_id=" + projectId + "&from_date=2025-02-15&to_date=2025-02-22";
 
       String auth = username + ":" + secret;
       String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
@@ -44,8 +45,6 @@ public class MixpanelService {
 
       ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
 
-//      System.out.println(response.getBody() + "\n");
-
       String responseBody = response.getBody();
       if (responseBody == null || responseBody.isEmpty()) {
         System.out.println("[INFO] No data received from Mixpanel");
@@ -56,61 +55,78 @@ public class MixpanelService {
       ObjectMapper objectMapper = new ObjectMapper();
       System.out.println("[Mixpanel API Response]: \n");
 
-      for (String jsonLine : jsonLines) {
-        if (!jsonLine.trim().isEmpty()) {
-          JsonNode eventJson = objectMapper.readTree(jsonLine);
+      fetchPipelineFailures(jsonLines, objectMapper);
 
-          if (
-                  eventJson.has("event")
-                          &&
-                  "BE_pipeline_executed".equals(eventJson.get("event").asText())
-          ) {
+      fetchDataHealthFailures(jsonLines, objectMapper);
 
-            if (eventJson.has("properties")) {
-              JsonNode propertiesJson = eventJson.get("properties");
-              if (propertiesJson != null && propertiesJson.has("Result")
-                      && "Fail".equals(propertiesJson.get("Result").asText())
-                      && filterForPipelineFailureJson(propertiesJson)) {
+      printPipelineFailures();
 
-                if (!propertiesJson.has("Pipeline ID")) {
-                  System.out.println("[WARN] A BE_pipeline_executed event caught without a pipeline ID");
-                  continue;
-                }
-                String pipelineIdFromJson = propertiesJson.get("Pipeline ID").asText();
+      printDataHealthCheckFailures();
 
-                if (!detailsOfPipelineFailuresMap.containsKey(pipelineIdFromJson)) {
-                  detailsOfPipelineFailuresMap.put(pipelineIdFromJson, new HashMap<>());
-                }
+    }
+    catch (Exception e) {
+      System.err.println("[Error] Failed to fetch data from Mixpanel: " + e.getMessage());
+      System.out.println(e.getStackTrace());
+    }
+  }
 
-                Map<String, Integer> detailsOfPipelineIdFailure = detailsOfPipelineFailuresMap.get(pipelineIdFromJson);
+  private boolean filterForHealthCheckCompletedFailure(JsonNode propertiesJson) {
+    String instance = propertiesJson.has("instance") ? (propertiesJson.get("instance").asText()).toLowerCase() : "";
+    if ("".equals(instance) || "prod".equals(instance)) {
+      return false;
+    }
 
-                if (!propertiesJson.has("Pipeline Name")) {
-                  System.out.println("[WARN] A pipeline caught which has pipeline ID as: " + pipelineIdFromJson + " without having a pipeline Name");
-                  continue;
-                }
-                String pipelineNameFromJson = propertiesJson.get("Pipeline Name").asText();
+    return true;
+  }
 
-                detailsOfPipelineIdFailure.put(pipelineNameFromJson,
-                        detailsOfPipelineIdFailure.getOrDefault(pipelineNameFromJson, 0) + 1);
+  private boolean filterForPipelineFailureJson(JsonNode propertiesJson) {
+    String pipelineName = propertiesJson.has("Pipeline Name") ? (propertiesJson.get("Pipeline Name").asText()).toLowerCase() : "";
+    String errorMessage = propertiesJson.has("Error Message") ? (propertiesJson.get("Error Message").asText()).toLowerCase() : "";
 
-              }
-            }
+    if ("".equals(pipelineName) || pipelineName.contains("test") || pipelineName.contains("backfill") || pipelineName.contains("it_")) {
+      return false;
+    }
 
-//            String formattedJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(eventJson);
-//            System.out.println(formattedJson);
-          }
+    if (errorMessage.contains("no mails matching the filters") || errorMessage.contains("null for mail report") || errorMessage.contains("no attachment found for mail") || errorMessage.contains("no download link found") || errorMessage.contains("lab_email_pipeline")) {
+      return false;
+    }
 
-//          if (
-//                  eventJson.has("event")
-//                          &&
-//                          "BE_Health_Check_Completed".equals(eventJson.get("event").asText())
-//          ) {
-//            String formattedJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(eventJson);
-//            System.out.println(formattedJson);
-//          }
+    return true;
+  }
+
+  private boolean filterForDataHealthFailureJson(JsonNode propertiesJson) {
+    String instance = propertiesJson.has("instance") ? (propertiesJson.get("instance").asText()).toLowerCase() : "";
+
+    if (instance.contains("prod")) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private void printDataHealthCheckFailures() {
+    try {
+      int countOfDataHealthCheckCompletedFailures = 0;
+
+      System.out.println("Details of data health check failures: ");
+
+      for (String datasetIdKey : detailsOfDataHealthCheckCompletedMap.keySet()) {
+        for (String datasetNameKey : detailsOfDataHealthCheckCompletedMap.get(datasetIdKey).keySet()) {
+          System.out.println("Dataset ID: " + datasetIdKey + " Dataset Name: " + datasetNameKey + " Failure Count: " + detailsOfDataHealthCheckCompletedMap.get(datasetIdKey).get(datasetNameKey));
+
+          countOfDataHealthCheckCompletedFailures += detailsOfDataHealthCheckCompletedMap.get(datasetIdKey).get(datasetNameKey);
         }
       }
 
+      System.out.println("Total Dataset Health Failure Count: " + countOfDataHealthCheckCompletedFailures);
+    } catch (Exception e) {
+      System.out.println("[ERROR]");
+      System.out.println(e.getStackTrace());
+    }
+  }
+
+  private void printPipelineFailures() {
+    try {
       int countOfFailedPipelines = 0;
 
       System.out.println("Details of failed pipelines: ");
@@ -124,26 +140,108 @@ public class MixpanelService {
       }
 
       System.out.println("Total pipeline failed count: " + countOfFailedPipelines);
-
+    } catch (Exception e) {
+      System.out.println("[ERROR]");
+      System.out.println(e.getStackTrace());
     }
-    catch (Exception e) {
+  }
+
+  private void fetchDataHealthFailures(String[] jsonLines, ObjectMapper objectMapper) {
+    try {
+      for (String jsonLine : jsonLines) {
+        if (jsonLine.trim().isEmpty()) {
+          continue;
+        }
+        JsonNode eventJson = objectMapper.readTree(jsonLine);
+        if (
+                eventJson.has("event")
+                        &&
+                        "BE_Health_Check_Completed".equals(eventJson.get("event").asText())
+        ) {
+
+          if (!eventJson.has("properties")) {
+            System.out.println("[WARN] A BE_Health_Check_Completed event caught without properties JSON");
+            continue;
+          }
+          JsonNode propertiesJson = eventJson.get("properties");
+
+          if (propertiesJson != null && propertiesJson.has("result")
+                  && "failed".equals((propertiesJson.get("result").asText()).toLowerCase())
+                  && filterForDataHealthFailureJson(propertiesJson)) {
+
+            if (!propertiesJson.has("datasetId")) {
+              System.out.println("[WARN] A BE_Health_Check_Completed event caught without a dataset ID");
+              continue;
+            }
+            String datasetIdFromJson = propertiesJson.get("datasetId").asText();
+
+            detailsOfDataHealthCheckCompletedMap.putIfAbsent(datasetIdFromJson, new HashMap<>());
+
+            Map<String, Integer> detailOfDatasetIdFailure = detailsOfDataHealthCheckCompletedMap.get(datasetIdFromJson);
+
+            if (!propertiesJson.has("datasetName")) {
+              System.out.println("[WARN] A dataset caught which has dataset ID as: " + datasetIdFromJson + " without having a dataset Name");
+              continue;
+            }
+            String datasetNameFromJson = propertiesJson.get("datasetName").asText();
+
+            detailOfDatasetIdFailure.put(datasetNameFromJson, detailOfDatasetIdFailure.getOrDefault(datasetNameFromJson, 0) + 1);
+          }
+        }
+      }
+    } catch (Exception e) {
       System.err.println("[Error] Failed to fetch data from Mixpanel: " + e.getMessage());
       System.out.println(e.getStackTrace());
     }
   }
 
-  private boolean filterForPipelineFailureJson(JsonNode propertiesJson) {
-    String pipelineName = propertiesJson.has("Pipeline Name") ? (propertiesJson.get("Pipeline Name").asText()).toLowerCase() : "";
-    String errorMessage = propertiesJson.has("Error Message") ? (propertiesJson.get("Error Message").asText()).toLowerCase() : "";
+  private void fetchPipelineFailures(String[] jsonLines, ObjectMapper objectMapper) {
+    try {
+      for (String jsonLine : jsonLines) {
+        if (jsonLine.trim().isEmpty()) {
+          continue;
+        }
+        JsonNode eventJson = objectMapper.readTree(jsonLine);
+        if (
+                eventJson.has("event")
+                        &&
+                "BE_pipeline_executed".equals(eventJson.get("event").asText())
+        ) {
 
-    if ("".equals(pipelineName) || pipelineName.contains("test") || pipelineName.contains("backfill") || pipelineName.contains("it_")) {
-      return false;
+          if (!eventJson.has("properties")) {
+            System.out.println("[WARN] A BE_pipeline_executed event caught without properties JSON");
+            continue;
+          }
+          JsonNode propertiesJson = eventJson.get("properties");
+
+          if (propertiesJson != null && propertiesJson.has("Result")
+                  && "fail".equals((propertiesJson.get("Result").asText()).toLowerCase())
+                  && filterForPipelineFailureJson(propertiesJson)) {
+
+            if (!propertiesJson.has("Pipeline ID")) {
+              System.out.println("[WARN] A BE_pipeline_executed event caught without a pipeline ID");
+              continue;
+            }
+            String pipelineIdFromJson = propertiesJson.get("Pipeline ID").asText();
+
+            detailsOfPipelineFailuresMap.putIfAbsent(pipelineIdFromJson, new HashMap<>());
+
+            Map<String, Integer> detailsOfPipelineIdFailure = detailsOfPipelineFailuresMap.get(pipelineIdFromJson);
+
+            if (!propertiesJson.has("Pipeline Name")) {
+              System.out.println("[WARN] A pipeline caught which has pipeline ID as: " + pipelineIdFromJson + " without having a pipeline Name");
+              continue;
+            }
+            String pipelineNameFromJson = propertiesJson.get("Pipeline Name").asText();
+
+            detailsOfPipelineIdFailure.put(pipelineNameFromJson,
+                    detailsOfPipelineIdFailure.getOrDefault(pipelineNameFromJson, 0) + 1);
+          }
+        }
+      }
+    } catch (Exception e) {
+      System.err.println("[Error] Failed to fetch data from Mixpanel: " + e.getMessage());
+      System.out.println(e.getStackTrace());
     }
-
-    if (errorMessage.contains("no mails matching the filters") || errorMessage.contains("null for mail report") || errorMessage.contains("No attachment found for mail") || errorMessage.contains("no download link found") || errorMessage.contains("lab_email_pipeline")) {
-      return false;
-    }
-
-    return true;
   }
 }

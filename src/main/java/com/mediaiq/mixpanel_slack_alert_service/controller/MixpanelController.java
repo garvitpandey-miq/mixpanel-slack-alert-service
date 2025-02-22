@@ -17,7 +17,7 @@ public class MixpanelController {
 
   @GetMapping("/fetch")
   public String fetchData() {
-    mixpanelService.fetchMixpanelData();
+    mixpanelService.fetchAndProcessMixpanelData();
     return "Mixpanel data fetch triggered!";
   }
 

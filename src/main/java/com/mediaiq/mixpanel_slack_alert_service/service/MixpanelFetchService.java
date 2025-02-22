@@ -1,6 +1,5 @@
 package com.mediaiq.mixpanel_slack_alert_service.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -9,9 +8,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Arrays;
 import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
+
 
 @Service
 public class MixpanelFetchService {
@@ -48,7 +47,7 @@ public class MixpanelFetchService {
     }
     catch (Exception e) {
       System.err.println("[Error] Failed to fetch data from Mixpanel: " + e.getMessage());
-      System.out.println(e.getStackTrace());
+      System.out.println(Arrays.toString(e.getStackTrace()));
       return null;
     }
   }

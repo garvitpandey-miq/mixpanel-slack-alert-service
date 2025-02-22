@@ -11,8 +11,9 @@ import java.util.Map;
 @Service
 public class PipelineFailureService {
   private final Map<String, Map<String, Integer>> detailsOfPipelineFailuresMap = new HashMap<>();
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
-  public void fetchPipelineFailures(String[] jsonLines, ObjectMapper objectMapper) {
+  public void fetchPipelineFailures(String[] jsonLines) {
     try {
       for (String jsonLine : jsonLines) {
         if (jsonLine.trim().isEmpty()) {

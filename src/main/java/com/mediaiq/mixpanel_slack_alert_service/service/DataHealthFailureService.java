@@ -11,8 +11,9 @@ import java.util.Map;
 @Service
 public class DataHealthFailureService {
   private final Map<String, Map<String, Integer>> detailsOfDataHealthCheckCompletedMap = new HashMap<>();
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
-  public void fetchDataHealthFailures(String[] jsonLines, ObjectMapper objectMapper) {
+  public void fetchDataHealthFailures(String[] jsonLines) {
     try {
       for (String jsonLine : jsonLines) {
         if (jsonLine.trim().isEmpty()) {

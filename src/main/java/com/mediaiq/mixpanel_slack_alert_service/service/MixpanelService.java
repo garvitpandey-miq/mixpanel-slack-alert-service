@@ -70,15 +70,6 @@ public class MixpanelService {
     }
   }
 
-  private boolean filterForHealthCheckCompletedFailure(JsonNode propertiesJson) {
-    String instance = propertiesJson.has("instance") ? (propertiesJson.get("instance").asText()).toLowerCase() : "";
-    if ("".equals(instance) || "prod".equals(instance)) {
-      return false;
-    }
-
-    return true;
-  }
-
   private boolean filterForPipelineFailureJson(JsonNode propertiesJson) {
     String pipelineName = propertiesJson.has("Pipeline Name") ? (propertiesJson.get("Pipeline Name").asText()).toLowerCase() : "";
     String errorMessage = propertiesJson.has("Error Message") ? (propertiesJson.get("Error Message").asText()).toLowerCase() : "";

@@ -12,7 +12,7 @@ import java.util.Map;
 public class DataHealthFailureService {
   private final Map<String, Map<String, Integer>> detailsOfDataHealthCheckCompletedMap = new HashMap<>();
 
-  private void fetchDataHealthFailures(String[] jsonLines, ObjectMapper objectMapper) {
+  public void fetchDataHealthFailures(String[] jsonLines, ObjectMapper objectMapper) {
     try {
       for (String jsonLine : jsonLines) {
         if (jsonLine.trim().isEmpty()) {
@@ -67,7 +67,7 @@ public class DataHealthFailureService {
     return instance.contains("prod");
   }
 
-  private void printDataHealthCheckFailures() {
+  public void printDataHealthCheckFailures() {
     try {
       int countOfDataHealthCheckCompletedFailures = 0;
 

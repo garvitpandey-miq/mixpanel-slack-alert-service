@@ -12,7 +12,7 @@ import java.util.Map;
 public class PipelineFailureService {
   private final Map<String, Map<String, Integer>> detailsOfPipelineFailuresMap = new HashMap<>();
 
-  private void fetchPipelineFailures(String[] jsonLines, ObjectMapper objectMapper) {
+  public void fetchPipelineFailures(String[] jsonLines, ObjectMapper objectMapper) {
     try {
       for (String jsonLine : jsonLines) {
         if (jsonLine.trim().isEmpty()) {
@@ -73,7 +73,7 @@ public class PipelineFailureService {
     return !errorMessage.contains("no mails matching the filters") && !errorMessage.contains("null for mail report") && !errorMessage.contains("no attachment found for mail") && !errorMessage.contains("no download link found") && !errorMessage.contains("lab_email_pipeline");
   }
 
-  private void printPipelineFailures() {
+  public void printPipelineFailures() {
     try {
       int countOfFailedPipelines = 0;
 

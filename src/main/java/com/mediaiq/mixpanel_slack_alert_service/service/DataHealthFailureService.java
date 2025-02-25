@@ -2,6 +2,8 @@ package com.mediaiq.mixpanel_slack_alert_service.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -12,6 +14,7 @@ import java.util.Map;
 public class DataHealthFailureService {
   private final Map<String, Map<String, Integer>> detailsOfDataHealthCheckCompletedMap = new HashMap<>();
   private final ObjectMapper objectMapper = new ObjectMapper();
+  private static final Logger logger = LoggerFactory.getLogger(DataHealthFailureService.class);
 
   public String fetchDataHealthFailures(String[] jsonLines) {
     try {
@@ -28,7 +31,7 @@ public class DataHealthFailureService {
         ) {
 
           if (!eventJson.has("properties")) {
-            System.out.println("[WARN] A BE_Health_Check_Completed event caught without properties JSON");
+            logger.warn("[WARN] A BE_Health_Check_Completed event caught without properties JSON");
             continue;
           }
           JsonNode propertiesJson = eventJson.get("properties");
@@ -38,7 +41,7 @@ public class DataHealthFailureService {
                   && filterForDataHealthFailureJson(propertiesJson)) {
 
             if (!propertiesJson.has("datasetId")) {
-              System.out.println("[WARN] A BE_Health_Check_Completed event caught without a dataset ID");
+              logger.warn("[WARN] A BE_Health_Check_Completed event caught without a dataset ID");
               continue;
             }
             String datasetIdFromJson = propertiesJson.get("datasetId").asText();
@@ -48,7 +51,7 @@ public class DataHealthFailureService {
             Map<String, Integer> detailOfDatasetIdFailure = detailsOfDataHealthCheckCompletedMap.get(datasetIdFromJson);
 
             if (!propertiesJson.has("datasetName")) {
-              System.out.println("[WARN] A dataset caught which has dataset ID as: " + datasetIdFromJson + " without having a dataset Name");
+              logger.warn("[WARN] A dataset caught which has dataset ID as: " + datasetIdFromJson + " without having a dataset Name");
               continue;
             }
             String datasetNameFromJson = propertiesJson.get("datasetName").asText();
@@ -59,7 +62,7 @@ public class DataHealthFailureService {
       }
       return mapToString();
     } catch (Exception e) {
-      System.err.println("[Error] Failed to fetch data from Mixpanel: " + e.getMessage());
+      logger.error("[Error] Failed to fetch data from Mixpanel: " + e.getMessage());
       System.out.println(Arrays.toString(e.getStackTrace()));
       return null;
     }
@@ -97,6 +100,7 @@ public class DataHealthFailureService {
       }
 
     } catch (Exception e) {
+      logger.error("[ERROR] Error while traversing detailsOfDataHealthCheckCompletedMap");
       return null;
     }
   }

@@ -2,6 +2,8 @@ package com.mediaiq.mixpanel_slack_alert_service.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -12,6 +14,7 @@ import java.util.Map;
 public class PipelineFailureService {
   private final Map<String, Map<String, Integer>> detailsOfPipelineFailuresMap = new HashMap<>();
   private final ObjectMapper objectMapper = new ObjectMapper();
+  private static final Logger logger = LoggerFactory.getLogger(SlackNotificationService.class);
 
   public String fetchPipelineFailures(String[] jsonLines) {
     try {
@@ -28,7 +31,7 @@ public class PipelineFailureService {
         ) {
 
           if (!eventJson.has("properties")) {
-            System.out.println("[WARN] A BE_pipeline_executed event caught without properties JSON");
+            logger.warn("[WARN] A BE_pipeline_executed event caught without properties JSON");
             continue;
           }
           JsonNode propertiesJson = eventJson.get("properties");
@@ -38,7 +41,7 @@ public class PipelineFailureService {
                   && filterForPipelineFailureJson(propertiesJson)) {
 
             if (!propertiesJson.has("Pipeline ID")) {
-              System.out.println("[WARN] A BE_pipeline_executed event caught without a pipeline ID");
+              logger.warn("[WARN] A BE_pipeline_executed event caught without a pipeline ID");
               continue;
             }
             String pipelineIdFromJson = propertiesJson.get("Pipeline ID").asText();
@@ -48,7 +51,7 @@ public class PipelineFailureService {
             Map<String, Integer> detailsOfPipelineIdFailure = detailsOfPipelineFailuresMap.get(pipelineIdFromJson);
 
             if (!propertiesJson.has("Pipeline Name")) {
-              System.out.println("[WARN] A pipeline caught which has pipeline ID as: " + pipelineIdFromJson + " without having a pipeline Name");
+              logger.warn("[WARN] A pipeline caught which has pipeline ID as: " + pipelineIdFromJson + " without having a pipeline Name");
               continue;
             }
             String pipelineNameFromJson = propertiesJson.get("Pipeline Name").asText();
@@ -61,7 +64,7 @@ public class PipelineFailureService {
 
       return mapToString();
     } catch (Exception e) {
-      System.err.println("[Error] Failed to fetch data from Mixpanel: " + e.getMessage());
+      logger.error("[ERROR] Failed to fetch data from Mixpanel: " + e.getMessage());
       System.out.println(Arrays.toString(e.getStackTrace()));
       return null;
     }
@@ -104,7 +107,7 @@ public class PipelineFailureService {
       }
 
     } catch (Exception e) {
-      System.out.println("[ERROR]");
+      logger.warn("[ERROR] while traversing detailsOfPipelineFailuresMap");
       System.out.println(Arrays.toString(e.getStackTrace()));
       return null;
     }

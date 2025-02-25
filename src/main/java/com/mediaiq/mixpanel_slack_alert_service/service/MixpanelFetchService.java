@@ -53,7 +53,7 @@ public class MixpanelFetchService {
     catch (Exception e) {
       System.err.println("[Error] Failed to fetch data from Mixpanel: " + e.getMessage());
       System.out.println(Arrays.toString(e.getStackTrace()));
-      return null;
+      return "Failed to fetch data from mixpanel";
     }
   }
 

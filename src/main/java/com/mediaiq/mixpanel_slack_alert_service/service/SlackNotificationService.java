@@ -1,10 +1,13 @@
 package com.mediaiq.mixpanel_slack_alert_service.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -14,6 +17,7 @@ public class SlackNotificationService {
   private String slackWebhookUrl;
 
   private final RestTemplate restTemplate = new RestTemplate();
+  private static final Logger logger = LoggerFactory.getLogger(SlackNotificationService.class);
 
   public void sendMessageToSlack(String message) {
     try {
@@ -26,13 +30,12 @@ public class SlackNotificationService {
 
       ResponseEntity<String> response = restTemplate.exchange(slackWebhookUrl, HttpMethod.POST, entity, String.class);
 
-      if (response.getStatusCode().is2xxSuccessful()) {
-        System.out.println("[SLACK] Message sent Successfully");
-      } else {
-        System.out.println("[SLACK] Failed to send message" + response.getBody());
+      if (!response.getStatusCode().is2xxSuccessful()) {
+        logger.error("[ERROR] Failed to send message to slack: " + response.getBody());
       }
     } catch (Exception e) {
-      System.err.println("[ERROR] Failed to send Slack notification" + e.getMessage());
+      logger.error("[ERROR] Failed to send message to Slack" + e.getMessage());
+      System.out.println(Arrays.toString(e.getStackTrace()));
     }
   }
 }

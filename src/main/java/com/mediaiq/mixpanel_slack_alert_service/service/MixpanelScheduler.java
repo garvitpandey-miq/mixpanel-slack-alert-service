@@ -15,7 +15,7 @@ public class MixpanelScheduler {
   @Scheduled(fixedRate = 120000) 
   public void devFetchMixpanelData() {
     System.out.println("[DEV MODE] Fetching Mixpanel data...");
-    mixpanelService.fetchAndProcessMixpanelData();
+    System.out.println(mixpanelService.fetchAndProcessMixpanelData());
   }
 
   @Scheduled(cron = "0 0 3,9,15,21 * * ?", zone = "Asia/Kolkata")

@@ -15,6 +15,7 @@ public class DataHealthFailureService {
 
   public void fetchDataHealthFailures(String[] jsonLines) {
     try {
+      detailsOfDataHealthCheckCompletedMap.clear();
       for (String jsonLine : jsonLines) {
         if (jsonLine.trim().isEmpty()) {
           continue;
@@ -65,7 +66,7 @@ public class DataHealthFailureService {
   private boolean filterForDataHealthFailureJson(JsonNode propertiesJson) {
     String instance = propertiesJson.has("instance") ? (propertiesJson.get("instance").asText()).toLowerCase() : "";
 
-    return instance.contains("prod");
+    return instance.contains("prod") || instance.isEmpty();
   }
 
   public void printDataHealthCheckFailures() {

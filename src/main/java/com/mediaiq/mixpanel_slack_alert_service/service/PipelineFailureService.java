@@ -15,6 +15,7 @@ public class PipelineFailureService {
 
   public void fetchPipelineFailures(String[] jsonLines) {
     try {
+      detailsOfPipelineFailuresMap.clear();
       for (String jsonLine : jsonLines) {
         if (jsonLine.trim().isEmpty()) {
           continue;

@@ -1,5 +1,6 @@
 package com.mediaiq.mixpanel_slack_alert_service.service;
 
+import com.mediaiq.mixpanel_slack_alert_service.Util.DateUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -8,6 +9,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Base64;
 
@@ -30,7 +34,8 @@ public class MixpanelFetchService {
 
   public String fetchMixpanelData() {
     try {
-      String url = mixpanelApiUrl + "?project_id=" + projectId + "&from_date=2025-02-15&to_date=2025-02-22";
+      String todayDate = DateUtil.getTodayDateInIST();
+      String url = mixpanelApiUrl + "?project_id=" + projectId + "&from_date=" + todayDate + "&to_date=" + todayDate;
 
       String auth = username + ":" + secret;
       String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());

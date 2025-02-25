@@ -87,10 +87,10 @@ public class DataHealthFailureService {
 
       if (countOfDataHealthCheckCompletedFailures == 0) {
         return dataHealthFailureStringBuilder.append("All good so far!!\n").toString();
-      } else if (countOfDataHealthCheckCompletedFailures > 0 && countOfDataHealthCheckCompletedFailures < 15) {
+      } else if (countOfDataHealthCheckCompletedFailures > 0 && countOfDataHealthCheckCompletedFailures < 20) {
         return dataHealthFailureStringBuilder.toString();
       } else {
-        return dataHealthFailureStringBuilder.append("More than 15 data health failures found\n").toString();
+        return dataHealthFailureStringBuilder.append("More than 20 data health failures found\n").toString();
       }
 
     } catch (Exception e) {

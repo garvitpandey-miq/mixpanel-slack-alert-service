@@ -94,10 +94,10 @@ public class PipelineFailureService {
 
       if (countOfFailedPipelines == 0) {
         return pipelineFailureStringBuilder.append("All good so far!!\n").toString();
-      } else if (countOfFailedPipelines > 0 && countOfFailedPipelines < 20) {
+      } else if (countOfFailedPipelines > 0 && countOfFailedPipelines < 25) {
         return pipelineFailureStringBuilder.toString();
       } else {
-        return pipelineFailureStringBuilder.append("More than 20 pipelines failing!\n").toString();
+        return pipelineFailureStringBuilder.append("More than 25 pipelines failing!\n").toString();
       }
 
     } catch (Exception e) {

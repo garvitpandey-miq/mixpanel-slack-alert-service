@@ -83,7 +83,7 @@ public class PipelineFailureService {
       int countOfFailedPipelines = 0;
       StringBuilder pipelineFailureStringBuilder = new StringBuilder();
 
-      pipelineFailureStringBuilder.append("Pipeline failures: \n");
+      pipelineFailureStringBuilder.append("Pipeline Failures: \n");
 
       for (String pipelineIdKey : detailsOfPipelineFailuresMap.keySet()) {
         for (String pipelineNameKey : detailsOfPipelineFailuresMap.get(pipelineIdKey).keySet()) {
@@ -94,10 +94,13 @@ public class PipelineFailureService {
 
       if (countOfFailedPipelines == 0) {
         return pipelineFailureStringBuilder.append("All good so far!!\n").toString();
-      } else if (countOfFailedPipelines > 0 && countOfFailedPipelines < 25) {
+      } else if (countOfFailedPipelines > 0 && countOfFailedPipelines < 30) {
         return pipelineFailureStringBuilder.toString();
       } else {
-        return pipelineFailureStringBuilder.append("More than 25 pipelines failing!\n").toString();
+        return """
+                Pipeline Failures:\s
+                More than 30 pipelines failed!\s
+                """;
       }
 
     } catch (Exception e) {

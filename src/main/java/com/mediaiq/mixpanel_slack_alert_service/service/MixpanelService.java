@@ -18,24 +18,22 @@ public class MixpanelService {
     this.dataHealthFailureService = dataHealthFailureService;
   }
 
-  public void fetchAndProcessMixpanelData() {
+  public String fetchAndProcessMixpanelData() {
     try {
       String responseBody = mixpanelFetchService.fetchMixpanelData();
 
       if (responseBody == null || responseBody.isEmpty()) {
         System.out.println("[INFO] No data received from Mixpanel");
-        return;
+        return null;
       }
 
       String[] jsonLines = responseBody.split("\n");
 
-      pipelineFailureService.fetchPipelineFailures(jsonLines);
-      dataHealthFailureService.fetchDataHealthFailures(jsonLines);
-
-      pipelineFailureService.printPipelineFailures();
-      dataHealthFailureService.printDataHealthCheckFailures();
+      return pipelineFailureService.fetchPipelineFailures(jsonLines) + "\n" +
+              dataHealthFailureService.fetchDataHealthFailures(jsonLines);
     } catch(Exception e) {
       System.err.println("[ERROR] Failed to fetch and process Mixpanel data: " + e.getMessage());
+      return null;
     }
 
   }

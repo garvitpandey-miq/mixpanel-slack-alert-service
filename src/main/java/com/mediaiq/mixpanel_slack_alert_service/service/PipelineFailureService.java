@@ -13,7 +13,7 @@ public class PipelineFailureService {
   private final Map<String, Map<String, Integer>> detailsOfPipelineFailuresMap = new HashMap<>();
   private final ObjectMapper objectMapper = new ObjectMapper();
 
-  public void fetchPipelineFailures(String[] jsonLines) {
+  public String fetchPipelineFailures(String[] jsonLines) {
     try {
       detailsOfPipelineFailuresMap.clear();
       for (String jsonLine : jsonLines) {
@@ -58,9 +58,12 @@ public class PipelineFailureService {
           }
         }
       }
+
+      return mapToString();
     } catch (Exception e) {
       System.err.println("[Error] Failed to fetch data from Mixpanel: " + e.getMessage());
       System.out.println(Arrays.toString(e.getStackTrace()));
+      return null;
     }
   }
 
@@ -73,6 +76,35 @@ public class PipelineFailureService {
     }
 
     return !errorMessage.contains("no mails matching the filters") && !errorMessage.contains("null for mail report") && !errorMessage.contains("no attachment found for mail") && !errorMessage.contains("no download link found") && !errorMessage.contains("lab_email_pipeline");
+  }
+
+  public String mapToString() {
+    try {
+      int countOfFailedPipelines = 0;
+      StringBuilder pipelineFailureStringBuilder = new StringBuilder();
+
+      pipelineFailureStringBuilder.append("Pipeline failures: \n");
+
+      for (String pipelineIdKey : detailsOfPipelineFailuresMap.keySet()) {
+        for (String pipelineNameKey : detailsOfPipelineFailuresMap.get(pipelineIdKey).keySet()) {
+          pipelineFailureStringBuilder.append("Pipeline ID: ").append(pipelineIdKey).append(" Pipeline Name: ").append(pipelineNameKey).append(" Failure Count: ").append(detailsOfPipelineFailuresMap.get(pipelineIdKey).get(pipelineNameKey)).append("\n");
+          countOfFailedPipelines += detailsOfPipelineFailuresMap.get(pipelineIdKey).get(pipelineNameKey);
+        }
+      }
+
+      if (countOfFailedPipelines == 0) {
+        return pipelineFailureStringBuilder.append("All good so far!!\n").toString();
+      } else if (countOfFailedPipelines > 0 && countOfFailedPipelines < 20) {
+        return pipelineFailureStringBuilder.toString();
+      } else {
+        return pipelineFailureStringBuilder.append("More than 20 pipelines failing!\n").toString();
+      }
+
+    } catch (Exception e) {
+      System.out.println("[ERROR]");
+      System.out.println(Arrays.toString(e.getStackTrace()));
+      return null;
+    }
   }
 
   public void printPipelineFailures() {

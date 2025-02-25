@@ -13,7 +13,7 @@ public class DataHealthFailureService {
   private final Map<String, Map<String, Integer>> detailsOfDataHealthCheckCompletedMap = new HashMap<>();
   private final ObjectMapper objectMapper = new ObjectMapper();
 
-  public void fetchDataHealthFailures(String[] jsonLines) {
+  public String fetchDataHealthFailures(String[] jsonLines) {
     try {
       detailsOfDataHealthCheckCompletedMap.clear();
       for (String jsonLine : jsonLines) {
@@ -57,9 +57,11 @@ public class DataHealthFailureService {
           }
         }
       }
+      return mapToString();
     } catch (Exception e) {
       System.err.println("[Error] Failed to fetch data from Mixpanel: " + e.getMessage());
       System.out.println(Arrays.toString(e.getStackTrace()));
+      return null;
     }
   }
 
@@ -67,6 +69,33 @@ public class DataHealthFailureService {
     String instance = propertiesJson.has("instance") ? (propertiesJson.get("instance").asText()).toLowerCase() : "";
 
     return instance.contains("prod") || instance.isEmpty();
+  }
+
+  public String mapToString() {
+    try {
+      int countOfDataHealthCheckCompletedFailures = 0;
+      StringBuilder dataHealthFailureStringBuilder = new StringBuilder();
+
+      dataHealthFailureStringBuilder.append("Data Health Failures: \n");
+
+      for (String datasetIdKey : detailsOfDataHealthCheckCompletedMap.keySet()) {
+        for (String datasetNameKey : detailsOfDataHealthCheckCompletedMap.get(datasetIdKey).keySet()) {
+          dataHealthFailureStringBuilder.append("Dataset ID: ").append(datasetIdKey).append(" Dataset Name: ").append(datasetNameKey).append(" Failure Count: ").append(detailsOfDataHealthCheckCompletedMap.get(datasetIdKey).get(datasetNameKey)).append("\n");
+          countOfDataHealthCheckCompletedFailures += detailsOfDataHealthCheckCompletedMap.get(datasetIdKey).get(datasetNameKey);
+        }
+      }
+
+      if (countOfDataHealthCheckCompletedFailures == 0) {
+        return dataHealthFailureStringBuilder.append("All good so far!!\n").toString();
+      } else if (countOfDataHealthCheckCompletedFailures > 0 && countOfDataHealthCheckCompletedFailures < 15) {
+        return dataHealthFailureStringBuilder.toString();
+      } else {
+        return dataHealthFailureStringBuilder.append("More than 15 data health failures found\n").toString();
+      }
+
+    } catch (Exception e) {
+      return null;
+    }
   }
 
   public void printDataHealthCheckFailures() {
@@ -78,7 +107,6 @@ public class DataHealthFailureService {
       for (String datasetIdKey : detailsOfDataHealthCheckCompletedMap.keySet()) {
         for (String datasetNameKey : detailsOfDataHealthCheckCompletedMap.get(datasetIdKey).keySet()) {
           System.out.println("Dataset ID: " + datasetIdKey + " Dataset Name: " + datasetNameKey + " Failure Count: " + detailsOfDataHealthCheckCompletedMap.get(datasetIdKey).get(datasetNameKey));
-
           countOfDataHealthCheckCompletedFailures += detailsOfDataHealthCheckCompletedMap.get(datasetIdKey).get(datasetNameKey);
         }
       }

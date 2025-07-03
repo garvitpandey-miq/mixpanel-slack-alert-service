@@ -4,23 +4,24 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 @Service
-public class MixpanelScheduler {
+public class Scheduler {
 
-  private final MixpanelService mixpanelService;
+  private final MixpanelAlertManager mixpanelAlertManager;
 
-  public MixpanelScheduler(MixpanelService mixpanelService) {
-    this.mixpanelService = mixpanelService;
+  public Scheduler(MixpanelAlertManager mixpanelAlertManager) {
+    this.mixpanelAlertManager = mixpanelAlertManager;
   }
 
   @Scheduled(fixedRate = 120000) 
   public void devFetchMixpanelData() {
-    System.out.println("[DEV MODE] Fetching Mixpanel data...");
-    System.out.println(mixpanelService.fetchAndProcessMixpanelData());
+    System.out.println("[DEV MODE] Sending data to slack every 2 minutes...");
+    mixpanelAlertManager.fetchAndSendSlackNotification();
+
   }
 
   @Scheduled(cron = "0 0 3,9,15,21 * * ?", zone = "Asia/Kolkata")
   public void prodFetchMixpanelData() {
     System.out.println("[PROD MODE] Fetching Mixpanel data...");
-    mixpanelService.fetchAndProcessMixpanelData();
+    mixpanelAlertManager.fetchAndSendSlackNotification();
   }
 }

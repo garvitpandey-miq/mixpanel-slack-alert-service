@@ -2,12 +2,14 @@ package com.mediaiq.mixpanel_slack_alert_service.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mediaiq.mixpanel_slack_alert_service.Util.BlockUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -16,7 +18,7 @@ public class DataHealthFailureService {
   private final ObjectMapper objectMapper = new ObjectMapper();
   private static final Logger logger = LoggerFactory.getLogger(DataHealthFailureService.class);
 
-  public String fetchDataHealthFailures(String[] jsonLines) {
+  public void fetchDataHealthFailures(String[] jsonLines) {
     try {
       detailsOfDataHealthCheckCompletedMap.clear();
       for (String jsonLine : jsonLines) {
@@ -51,7 +53,7 @@ public class DataHealthFailureService {
             Map<String, Integer> detailOfDatasetIdFailure = detailsOfDataHealthCheckCompletedMap.get(datasetIdFromJson);
 
             if (!propertiesJson.has("datasetName")) {
-              logger.warn("[WARN] A dataset caught which has dataset ID as: " + datasetIdFromJson + " without having a dataset Name");
+              logger.warn("[WARN] A dataset caught which has dataset ID as: {} without having a dataset Name", datasetIdFromJson);
               continue;
             }
             String datasetNameFromJson = propertiesJson.get("datasetName").asText();
@@ -60,11 +62,53 @@ public class DataHealthFailureService {
           }
         }
       }
-      return mapToString();
     } catch (Exception e) {
-      logger.error("[Error] Failed to fetch data from Mixpanel: " + e.getMessage());
+      logger.error("[Error] Failed to fetch data from Mixpanel: {}", e.getMessage());
       System.out.println(Arrays.toString(e.getStackTrace()));
-      return null;
+    }
+  }
+
+  public void populateDataHealthFailures(BlockUtil blockUtil) {
+    try {
+      int countOfFailedDataHealthChecks = 0;
+
+      blockUtil.addBlock(Map.of(
+              "type", "header",
+              "text", Map.of("type", "plain_text", "text", "📊 Data Health Check Failures", "emoji", true)
+      ));
+
+      for (String datasetId : detailsOfDataHealthCheckCompletedMap.keySet()) {
+        for (String datasetName : detailsOfDataHealthCheckCompletedMap.get(datasetId).keySet()) {
+          int failureCount = detailsOfDataHealthCheckCompletedMap.get(datasetId).get(datasetName);
+          countOfFailedDataHealthChecks += failureCount;
+
+          blockUtil.addBlock(Map.of(
+                  "type", "section",
+                  "fields", List.of(
+                          Map.of("type", "mrkdwn", "text", "*Dataset ID:* `" + datasetId + "`"),
+                          Map.of("type", "mrkdwn", "text", "*Dataset Name:* `" + datasetName + "`"),
+                          Map.of("type", "mrkdwn", "text", "*Failure Count:* `" + failureCount + "`")
+                  )
+          ));
+
+          blockUtil.addBlock(Map.of("type", "divider"));
+        }
+      }
+
+      if (countOfFailedDataHealthChecks == 0) {
+        blockUtil.addBlock(Map.of(
+                "type", "section",
+                "text", Map.of("type", "mrkdwn", "text", "✅ *All good so far!* No data health check failures detected.")
+        ));
+      } else if (countOfFailedDataHealthChecks > 25) {
+        blockUtil.reset();
+        blockUtil.addBlock(Map.of(
+                "type", "section",
+                "text", Map.of("type", "mrkdwn", "text", "📊 *More than 25 data health check failures!* Too many failures to display individually.")
+        ));
+      }
+    } catch (Exception e) {
+      logger.error("[ERROR] Error while populating data health failures");
     }
   }
 
@@ -72,37 +116,6 @@ public class DataHealthFailureService {
     String instance = propertiesJson.has("instance") ? (propertiesJson.get("instance").asText()).toLowerCase() : "";
 
     return instance.contains("prod") || instance.isEmpty();
-  }
-
-  public String mapToString() {
-    try {
-      int countOfDataHealthCheckCompletedFailures = 0;
-      StringBuilder dataHealthFailureStringBuilder = new StringBuilder();
-
-      dataHealthFailureStringBuilder.append("Data Health Failures: \n");
-
-      for (String datasetIdKey : detailsOfDataHealthCheckCompletedMap.keySet()) {
-        for (String datasetNameKey : detailsOfDataHealthCheckCompletedMap.get(datasetIdKey).keySet()) {
-          dataHealthFailureStringBuilder.append("Dataset ID: ").append(datasetIdKey).append(" Dataset Name: ").append(datasetNameKey).append(" Failure Count: ").append(detailsOfDataHealthCheckCompletedMap.get(datasetIdKey).get(datasetNameKey)).append("\n");
-          countOfDataHealthCheckCompletedFailures += detailsOfDataHealthCheckCompletedMap.get(datasetIdKey).get(datasetNameKey);
-        }
-      }
-
-      if (countOfDataHealthCheckCompletedFailures == 0) {
-        return dataHealthFailureStringBuilder.append("All good so far!!\n").toString();
-      } else if (countOfDataHealthCheckCompletedFailures > 0 && countOfDataHealthCheckCompletedFailures < 25) {
-        return dataHealthFailureStringBuilder.toString();
-      } else {
-        return """
-                Data Health Check Failure:\s
-                More than 25 data health failures found\s
-                """;
-      }
-
-    } catch (Exception e) {
-      logger.error("[ERROR] Error while traversing detailsOfDataHealthCheckCompletedMap");
-      return null;
-    }
   }
 
   public void printDataHealthCheckFailures() {
@@ -126,3 +139,4 @@ public class DataHealthFailureService {
   }
 
 }
+
